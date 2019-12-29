@@ -16,6 +16,7 @@ var oOptionsRegExp = /^@options\s*$/;
 var oParseParameterRegExp = /^(?<indent>\s+)(?<name>\w+):\s*(?<value>\w+)\s*$/;
 var oPageToOpenURLRegExp = /^(?<url>https?.*?)(?<params>\s+@\w+)*$/;
 var oOnPageOpenEventRegExp = /^@on\s+(?<url>https?.*?)(?<params>\s+@\w+)*$/;
+var oSelectorRegExp = /^(?<indent>\s+)(?<selector>[\w\d\s%()\[\]><^&*#$~!=.-])(\s+["'](?<name>.*?)["'])?(\s+>\s+["'](?<file_path>.*?)["'])?.*?$/;
 
 //var iLevel = 0;
 var oOptions = {
@@ -32,8 +33,15 @@ function fnThrowError(sMessage)
     throw new Error(`[E] Line: ${iLineNumber} - ${sMessage}`);
 }
 
-function fnAddComponent(sType, oGroups, iLevel=0)
+function fnAddComponent(sType, oGroups)
 {
+    var iLevel = 0;
+    if (oGroups.indent) {
+        if (oGroups.indent % 4) {
+            fnThrowError(`wrong indent level`);
+        }
+        iLevel = oGroups.indent / 4;
+    }
     if (iLevel<aSelectionsStack.length) {
         aSelectionsStack = aSelectionsStack.slice(0, iLevel)
     }
@@ -43,6 +51,7 @@ function fnAddComponent(sType, oGroups, iLevel=0)
             sURL: oGroups.url,
             aChildren: []
         };
+
         aPagesToOpen.push(oItem);
         aSelectionsStack.push(oItem);
     }
@@ -50,11 +59,14 @@ function fnAddComponent(sType, oGroups, iLevel=0)
         if (!aSelectionsStack[0] || aSelectionsStack[0].sType!="open_url") {
             fnThrowError(`selector without page`);
         }
+        
         var oItem = {
             sType: sType,
             sURL: oGroups.url,
+            sSelector: oGroups.selector,
             aChildren: []
         };
+
         aSelectionsStack[aSelectionsStack.length-1].aChildren.push(oItem);
         aSelectionsStack.push(oItem);
     }
@@ -108,7 +120,13 @@ for (var iLineNumber=0; iLineNumber<aLines.length; iLineNumber++) {
         continue;
     }
 
-
+    if (oPageToOpenURLRegExp.test(sLine)) {
+        bIsPageToOpen = true;
+        bIsPageEvent = false;
+        var oGroups = sLine.match(oPageToOpenURLRegExp).groups;
+        fnAddComponent("open_url", oGroups);
+        continue;
+    }
 }
 
 console.log(oOptions);
