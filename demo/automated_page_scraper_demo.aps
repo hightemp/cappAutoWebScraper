@@ -1,0 +1,23 @@
+@options
+    library: puppeteer
+    async: false
+    timeout: 1000
+http://site.com/page1
+    .class1>.class2 
+        h1 "title"
+        .content > "/path/to/file.json"
+        a[href] > $aLinks
+        a[href] @open
+        .description
+            /text1.*?text2/g
+                /test(\d)/$1/g "filtered"
+@on http://site.com/login/
+    .class
+        .login_input < "test"
+        .password_input < $sTestVar
+        .submit_button @click
+@on http://site.com/page1/${\d+}/
+    .class   
+        .button2 @click
+        textarea @scroll 1500
+    body @scrolldown
